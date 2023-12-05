@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { FormGroup, Validators, NgForm, FormBuilder } from '@angular/forms';
+import { FormGroup, Validators, FormBuilder } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 
@@ -9,30 +9,32 @@ import { ApiService } from '../../services/api.service';
   styleUrls: ['./categoria-nova.component.scss']
 })
 export class CategoriaNovaComponent implements OnInit {
-  categoriaForm!: FormGroup;
-  nome: String = '';
-  imagemUrl: String = '';
+  categoriaForm: FormGroup = this.formBuilder.group({
+    'nome': [null, Validators.required],
+    'imagemUrl': [null, Validators.required]
+  });
 
   isLoadingResults = false;
+
   constructor(private router: Router, private api: ApiService, private formBuilder: FormBuilder) { }
 
-  ngOnInit() {
-     this.categoriaForm = this.formBuilder.group({
-    'nome' : [null, Validators.required],
-    'imagemUrl' : [null, Validators.required]
-  });
-  }
+  ngOnInit() {}
 
-  addCategoria(form: NgForm) {
+  addCategoria() {
     this.isLoadingResults = true;
-    this.api.addCategoria(form)
-      .subscribe(res => {
-          const id = res['id'];
+    this.api.addCategoria(this.categoriaForm.value)
+      .subscribe(
+        (novaCategoria) => {
+          if (novaCategoria && novaCategoria.categoriaId) {
+            console.log(`Adicionou a Categoria com id=${novaCategoria.categoriaId}`);
+          }
           this.isLoadingResults = false;
           this.router.navigate(['/categorias']);
-        }, (err) => {
+        },
+        (err) => {
           console.log(err);
           this.isLoadingResults = false;
-        });
+        }
+      );
   }
 }

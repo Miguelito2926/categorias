@@ -1,19 +1,15 @@
 import { Injectable } from '@angular/core';
-import { Observable, of, throwError } from 'rxjs';
-import {
-  HttpClient,
-  HttpHeaders,
-  HttpErrorResponse,
-} from '@angular/common/http';
-import { catchError, tap, map } from 'rxjs/operators';
+import { Observable, of } from 'rxjs';
+import { catchError, tap } from 'rxjs/operators';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Categoria } from '../model/categoria';
 import { Usuario } from '../model/usuario';
 import { NgForm } from '@angular/forms';
 
 const apiUrl = 'https://localhost:44390/api/categorias';
 const apiLoginUrl = 'https://localhost:44390/api/login';
-var token;
-var httpOptions = {
+let token = '';  // Inicialize como uma string vazia
+const httpOptions = {
   headers: new HttpHeaders({ 'Content-Type': 'application/json' }),
 };
 
@@ -24,66 +20,70 @@ export class ApiService {
   constructor(private http: HttpClient) {}
 
   montaHeaderToken() {
-    token = localStorage.getItem('jwt');
-    console.log('jwt hwader' + token);
-    httpOptions = {
-      headers: new HttpHeaders({
-        Authorization: 'Bearer' + token,
-        'Content-Type': 'application/json',
-      }),
-    };
+    token = localStorage.getItem('jwt') || '';
+    console.log('jwt header ' + token);
+    httpOptions.headers = new HttpHeaders({
+      Authorization: 'Bearer ' + token,  // Adicione um espaço antes de Bearer
+      'Content-Type': 'application/json',
+    });
   }
 
   Login(Usuario: NgForm): Observable<Usuario> {
     return this.http.post<Usuario>(apiLoginUrl, Usuario).pipe(
       tap((Usuario: Usuario) =>
         console.log(`Login usuario com email = ${Usuario.email}`)),
-      catchError(this.handelError<Usuario>('Login'))
+      catchError(this.handleError<Usuario>('Login'))
     );
   }
+
   getCategorias(): Observable<Categoria[]> {
     this.montaHeaderToken();
     console.log(httpOptions.headers);
     return this.http.get<Categoria[]>(apiUrl, httpOptions).pipe(
-      tap((_)=> console.log('leu as Categorias')),
-      catchError(this.handelError('getCategorias', []))
+      tap(Categorias => console.log('leu as Categorias')),
+      catchError(this.handleError('getCategorias', []))
     );
   }
+
   getCategoria(id: number): Observable<Categoria> {
     const url = `${apiUrl}/${id}`;
     return this.http.get<Categoria>(url, httpOptions).pipe(
-      tap((_) => console.log(`leu a Categoria id=${id}`)),
-      catchError(this.handelError<Categoria>(`getCategoria id= ${id}`))
+      tap(_ => console.log(`leu a Categoria id=${id}`)),
+      catchError(this.handleError<Categoria>(`getCategoria id= ${id}`))
     );
   }
-  addCategoria(Categoria: any): Observable<Categoria> {
+
+  addCategoria(categoria: Categoria): Observable<Categoria> {
     this.montaHeaderToken();
-    return this.http.post<Categoria>(apiUrl, Categoria, httpOptions).pipe(
-      tap((Categoria: Categoria) =>
-        console.log(`adicionou a Categoria com w/ id=${Categoria}`)
+    return this.http.post<Categoria>(apiUrl, categoria, httpOptions).pipe(
+      tap((novaCategoria: Categoria) =>
+        console.log(`Adicionou a Categoria com w/ id=${novaCategoria.categoriaId}`)
       ),
-      catchError(this.handelError<any>('Categoria'))
+      catchError(this.handleError<Categoria>('addCategoria'))
     );
   }
+  
+  
+
   updateCategoria(id: any, Categoria: any): Observable<any> {
     const url = `${apiUrl}/${id}`;
     return this.http
       .put(url, Categoria, httpOptions)
       .pipe(
-        tap(
-          (_ => console.log(`atualiza o produto com id=${id}`)),
-          catchError(this.handelError<any>('updateCategoria'))
-        )
+        tap(_ => console.log(`atualiza o produto com id=${id}`)),
+        catchError(this.handleError<any>('updateCategoria'))        
       );
   }
+
   deleteCategoria(id: any): Observable<Categoria> {
     const url = `${apiUrl}/${id}`;
     return this.http.delete<Categoria>(url, httpOptions).pipe(
-        tap(_ => console.log(`remove a Categoria com id=${id}`),
-          catchError(this.handelError<Categoria>('deleteCategoria')))
-      );
+      tap(_ => console.log(`remove a Categoria com id=${id}`)),
+      catchError(this.handleError<Categoria>('deleteCategoria'))
+    );
   }
-  private handelError<T>(operation = 'operation', result?: T) {
+
+  private handleError<T>(operation = 'operation', result?: T) {
     return (error: any): Observable<T> => {
       console.error(error);
       return of(result as T);
